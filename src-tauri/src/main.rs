@@ -1,51 +1,54 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::thread::sleep;
-use std::time::Duration;
-
+use chrono::{Duration, Utc};
 use futures_util::StreamExt;
 use shiplift::{tty::TtyChunk, Docker, LogsOptions};
 use shiplift::{ContainerFilter, ContainerListOptions};
+use std::collections::HashMap;
 use tauri::Manager;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tracing::info;
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
     message: String,
+    container_id: String,
 }
 
 struct AsyncProps {
-    inner: Mutex<mpsc::Sender<String>>,
+    logs_sender: Mutex<mpsc::Sender<String>>,
+    container_logging: Mutex<HashMap<String, String>>,
 }
 
-#[tauri::command]
-async fn js2rs(message: String, state: tauri::State<'_, AsyncProps>) -> Result<(), String> {
-    info!(?message, "js2rs");
-    let async_proc_input_tx = state.inner.lock().await;
-    async_proc_input_tx
-        .send(message)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-async fn print_chunk(chunk: TtyChunk, output_tx: &mpsc::Sender<String>) {
+async fn print_chunk(chunk: TtyChunk, logs_sender: &mpsc::Sender<String>, container_id: String) {
     match chunk {
         TtyChunk::StdOut(bytes) => {
-            output_tx
-                .send(format!("Stdout: {}", std::str::from_utf8(&bytes).unwrap()))
+            let message_string = std::str::from_utf8(&bytes).unwrap();
+
+            let payload = Payload {
+                message: message_string.to_string(),
+                container_id: container_id,
+            };
+
+            let res = logs_sender
+                .send(format!(
+                    "{}",
+                    serde_json::to_string_pretty(&payload).unwrap()
+                ))
                 .await;
+
+            if res.is_err() {
+                eprintln!("Error while sending the message {}", res.err().unwrap());
+            }
         }
-        TtyChunk::StdErr(bytes) => eprintln!("Stdout: {}", std::str::from_utf8(&bytes).unwrap()),
+        TtyChunk::StdErr(bytes) => eprintln!("Error: {}", std::str::from_utf8(&bytes).unwrap()),
         TtyChunk::StdIn(_) => unreachable!(),
     }
 }
 
-fn rs2js<R: tauri::Runtime>(message: String, manager: &impl Manager<R>) {
-    info!(?message, "rs2js");
-    manager.emit_all("rs2js", format!("{}", message)).unwrap();
+fn send_to_front<R: tauri::Runtime>(message: String, manager: &impl Manager<R>) {
+    manager.emit_all("logs", format!("{}", message)).unwrap();
 }
 
 #[tauri::command]
@@ -66,23 +69,43 @@ async fn get_containers() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn get_logs(id: String, state: tauri::State<'_, AsyncProps>) -> Result<(), String> {
-    println!("get logs for id: {}", id);
-    let docker = Docker::new();
+async fn get_logs(
+    container_id: String,
+    invoke_id: u32,
+    state: tauri::State<'_, AsyncProps>,
+) -> Result<(), &'static str> {
+    let mut container_hashmap = state.container_logging.lock().await;
+    // the container is already putting log in the message stream
+    if container_hashmap.contains_key(&container_id) {
+        println!(
+            "Container id: {} (req: {}) is already in the message stream",
+            container_id, invoke_id
+        );
+        return Err("Already logging this container");
+    }
 
-    let mut logs_stream = docker.containers().get(id).logs(
+    // set the container id in the hashmap and release the Mutex
+    container_hashmap.insert(container_id.clone(), "running".into());
+    std::mem::drop(container_hashmap);
+
+    let docker = Docker::new();
+    let now = Utc::now();
+    let last_day = now - Duration::days(1);
+
+    let mut logs_stream = docker.containers().get(&container_id).logs(
         &LogsOptions::builder()
             .stdout(true)
+            .since(&last_day)
+            .timestamps(true)
             .stderr(true)
             .follow(true)
             .build(),
     );
 
     while let Some(log_result) = logs_stream.next().await {
-        println!("getting logs");
-        let output_tx = state.inner.lock().await;
+        let logs_sender = state.logs_sender.lock().await;
         match log_result {
-            Ok(chunk) => print_chunk(chunk, &output_tx).await,
+            Ok(chunk) => print_chunk(chunk, &logs_sender, container_id.clone()).await,
             Err(e) => eprintln!("Error: {}", e),
         }
     }
@@ -91,19 +114,23 @@ async fn get_logs(id: String, state: tauri::State<'_, AsyncProps>) -> Result<(),
 }
 
 fn main() {
-    let (async_proc_output_tx, mut async_proc_output_rx) = mpsc::channel(1);
+    let container_logging: HashMap<String, String> = HashMap::new();
+    let (logs_channel_sender, mut logs_channel_receiver) = mpsc::channel(1);
 
     tauri::Builder::default()
         .manage(AsyncProps {
-            inner: Mutex::new(async_proc_output_tx),
+            logs_sender: Mutex::new(logs_channel_sender),
+            container_logging: Mutex::new(container_logging),
         })
-        .invoke_handler(tauri::generate_handler![js2rs, get_containers, get_logs])
+        .invoke_handler(tauri::generate_handler![get_containers, get_logs])
         .setup(|app| {
             let handle = app.handle();
+
+            // logs thread
             tauri::async_runtime::spawn(async move {
                 loop {
-                    if let Some(output) = async_proc_output_rx.recv().await {
-                        rs2js(output, &handle);
+                    if let Some(output) = logs_channel_receiver.recv().await {
+                        send_to_front(output, &handle);
                     }
                 }
             });

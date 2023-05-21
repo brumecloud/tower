@@ -39,9 +39,10 @@
         "windows": [{
             "fullscreen": false,
             "resizable": true,
-            "title": "brume-tower",
+            "title": "Tower",
             "width": 800,
-            "height": 600
+            "height": 900,
+            "maximized": true
         }]
     }
 }

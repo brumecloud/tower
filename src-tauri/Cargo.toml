@@ -20,6 +20,8 @@ shiplift = "*"
 futures-util = "*"
 tokio = "*"
 tracing = "*"
+rand = "*"
+chrono = "0.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
