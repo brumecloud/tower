@@ -17,20 +17,25 @@ function HomePage() {
                         <div className="pr-1 w-1/2 h-full">
                             <LogsPane
                                 container_id={tabStore.tabs[0].container.id}
+                                tab={tabStore.tabs[0]}
                             />
                         </div>
                         <div className="pl-1 w-1/2 h-full">
                             <LogsPane
                                 container_id={tabStore.tabs[1].container.id}
+                                tab={tabStore.tabs[1]}
                             />
                         </div>
                     </>
                 )}
                 {tabStore.tabs.length === 1 && (
-                    <LogsPane container_id={tabStore.tabs[0].container.id} />
+                    <LogsPane
+                        container_id={tabStore.tabs[0].container.id}
+                        tab={tabStore.tabs[0]}
+                    />
                 )}
             </div>
-            <div className="w-screen h-screen absolute -z-50 bg-[#1D1D1D]"></div>
+            <div className="w-screen h-screen absolute -z-50 bg-[#1a1a1a]"></div>
         </main>
     );
 }

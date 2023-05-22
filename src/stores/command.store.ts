@@ -25,13 +25,20 @@ export default class CommandStore {
             icon: Icons.Split,
             title: "Split the window",
             command: "SP",
-            is_selected: true,
+            is_selected: false,
         },
         {
             type: "global_filters",
             icon: Icons.Filter,
             title: "General Filter",
             command: "F",
+            is_selected: false,
+        },
+        {
+            type: "exit",
+            icon: Icons.Quit,
+            title: "Quit Tower",
+            command: "q",
             is_selected: false,
         },
     ];
@@ -117,8 +124,11 @@ export default class CommandStore {
 
     render_selected_commands(): Commands[] {
         if (
-            this.element_selected &&
-            this.element_selected.type === "list_container"
+            (this.element_selected &&
+                this.element_selected.type === "list_container") ||
+            (this.element_selected &&
+                this.element_selected.type === "split" &&
+                this.rootStore.tabStore.tabs.length == 1)
         ) {
             return this.rootStore.containerStore.all_containers.map((c, i) => ({
                 type: "container",

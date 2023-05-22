@@ -6,6 +6,7 @@ export enum Icons {
     Search,
     Split,
     Filter,
+    Quit,
 }
 
 export default function getIcon(icon: Icons) {

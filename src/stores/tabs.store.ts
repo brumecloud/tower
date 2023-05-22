@@ -12,4 +12,8 @@ export default class TabStore {
 
         makeAutoObservable(this);
     }
+
+    closePane = (tab: Tab) => {
+        this.tabs = this.tabs.filter((t) => t != tab);
+    };
 }
