@@ -1,86 +1,194 @@
-import { observer } from "mobx-react";
+import { useState } from "react";
+import CommandPalette from "./CommandPalette";
+import FreeSearchAction from "./FreeSearchAction";
+import List from "./List";
+import ListItem from "./ListItem";
+import Page from "./Page";
+import {
+    filterItems,
+    renderJsonStructure,
+    useHandleOpenCommandPalette,
+} from "./lib/utils";
+import { JsonStructure } from "./types";
+
+import { FaDocker, FaTerminal, FaGithub } from "react-icons/fa";
+import { RiPagesFill } from "react-icons/ri";
+import { BsWindowSplit } from "react-icons/bs";
+import { ImExit } from "react-icons/im";
+import { BiWindowClose, BiWindow } from "react-icons/bi";
+
 import useStores from "../../hooks/useStore";
-import Search from "../icons/search";
-import getIcon, { Icons } from "../icons/plexer";
-import Docker from "../icons/docker";
-import Split from "../icons/split";
-import Filter from "../icons/filter";
+import { observer } from "mobx-react";
 
 const CommandK = () => {
-    const { commandStore } = useStores();
+    const { containerStore, tabStore } = useStores();
+    const [selected, setSelected] = useState<number>(0);
+    const [isOpen, setIsOpen] = useState<boolean>(true);
+    const [search, setSearch] = useState<string>("");
+    const [page, setPage] = useState<"root" | "container_list" | "close_tab">(
+        "root"
+    );
 
-    if (commandStore.is_open) {
-        return (
-            <div className="z-50 absolute backdrop-blur-sm w-screen h-screen flex justify-center items-center">
-                <div
-                    onClick={() => {}}
-                    className="z-50 bg-[#1D1D1D] w-[500px] rounded-md border border-[#292929]"
-                >
-                    <div className="w-full border-b flex flex-row gap-3 items-center p-3 border-[#292929]">
-                        <div className="w-[16px] h-[16px]">
-                            <Search />
-                        </div>
-                        <input
-                            autoFocus
-                            className="w-full !outline-none bg-[#1D1D1D] text-white"
-                            placeholder="Search..."
-                            value={commandStore.search_input}
-                            onChange={(e) =>
-                                (commandStore.search_input = e.target.value)
-                            }
-                        />
-                    </div>
-                    <div className="flex flex-col gap-3 py-2">
-                        {commandStore.render_commands.map((command, index) => {
-                            let is_selected =
-                                index === commandStore.selected_command_index ||
-                                command.is_selected;
-                            if (command) {
-                                return (
-                                    <div
-                                        className={`${
-                                            is_selected
-                                                ? "text-white bg-zinc-800"
-                                                : "text-[#a09fa3]"
-                                        } w-full flex flex-row items-center gap-3 h-[30px] px-3`}
-                                    >
-                                        <div className="w-[20px] h-[20px] fill-white">
-                                            {command.icon == Icons.Docker && (
-                                                <Docker />
-                                            )}
-                                            {command.icon == Icons.Split && (
-                                                <Split />
-                                            )}
-                                            {command.icon == Icons.Filter && (
-                                                <Filter />
-                                            )}
-                                        </div>
-                                        {command.title}
-                                        <div className="flex-grow"></div>
-                                        {!is_selected ? (
-                                            <div className="w-[24px] text-[12px] text-[#525252] h-[24px] border border-[#292929] rounded flex flex-row items-center justify-center">
-                                                {command.command}
-                                            </div>
-                                        ) : (
-                                            <div className="w-[24px] text-[12px] text-[white] h-[24px] rounded flex flex-row items-center justify-center">
-                                                ➔
-                                            </div>
-                                        )}
-                                    </div>
+    useHandleOpenCommandPalette(setIsOpen);
+
+    const items: JsonStructure = [
+        {
+            heading: "Logs",
+            id: "logs",
+            items: [
+                {
+                    children: "Containers",
+                    icon: FaDocker,
+                    id: "list_container",
+                    href: "#",
+                    closeOnSelect: false,
+                    renderLink: (props) => <a {...props} />,
+                    typeString: "List all containers logs",
+                    onClick: () => {
+                        setPage("container_list");
+                        setSearch("");
+                    },
+                },
+                {
+                    children: "Terminal",
+                    icon: FaTerminal,
+                    id: "list_terminal",
+                    typeString: "List all terminal logs",
+                },
+            ],
+        },
+        {
+            heading: "Tabs",
+            id: "tabs",
+            items: [
+                {
+                    children: "Split view",
+                    icon: BsWindowSplit,
+                    id: "split",
+                    href: "#",
+                    closeOnSelect: false,
+                    onClick: () => {
+                        setPage("container_list");
+                        setSearch("");
+                    },
+                },
+                {
+                    children: "Close a tab",
+                    icon: BiWindowClose,
+                    id: "close_tab_action",
+                    href: "#",
+                    closeOnSelect: false,
+                    onClick: () => {
+                        setPage("close_tab");
+                        setSearch("");
+                    },
+                },
+            ],
+        },
+        {
+            heading: "Credit & Exit",
+            id: "credits",
+            items: [
+                {
+                    href: "https://tower.brume.dev/",
+                    children: "Website",
+                    icon: RiPagesFill,
+                    id: "website",
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    typeString: "Go to Tower website",
+                },
+                {
+                    href: "https://github.com/brumecloud/tower",
+                    children: "Github",
+                    icon: FaGithub,
+                    id: "github",
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    typeString: "Go to tower Github",
+                },
+                {
+                    children: "Exit",
+                    icon: ImExit,
+                    id: "exit",
+                    href: "#",
+                    typeString: "Why would you exit Tower??",
+                },
+            ],
+        },
+    ];
+
+    const rootItems = filterItems(items, search);
+
+    return (
+        <CommandPalette
+            onChangeSelected={setSelected}
+            onChangeSearch={setSearch}
+            onChangeOpen={setIsOpen}
+            selected={selected}
+            search={search}
+            isOpen={isOpen || tabStore.tabs.length == 0}
+            page={page}
+        >
+            <Page id="root" searchPrefix={["Tower"]}>
+                {rootItems.length ? (
+                    renderJsonStructure(rootItems)
+                ) : (
+                    <FreeSearchAction
+                        href={`https://google.com/?q=${search}`}
+                        rel="noopener noreferrer"
+                        closeOnSelect={false}
+                        target="_blank"
+                    />
+                )}
+            </Page>
+
+            <Page
+                searchPrefix={["Tower", "Containers"]}
+                id="container_list"
+                onEscape={() => {
+                    setPage("root");
+                }}
+            >
+                <List heading="All containers">
+                    {containerStore.all_containers.map((c) => (
+                        <ListItem
+                            index={0}
+                            icon={FaDocker}
+                            typeString={c.image}
+                            onClick={() => tabStore.addPane({ container: c })}
+                        >
+                            {c.name}
+                        </ListItem>
+                    ))}
+                </List>
+            </Page>
+
+            <Page
+                searchPrefix={["Tower", "Close a tab"]}
+                id="close_tab"
+                onEscape={() => {
+                    setPage("root");
+                }}
+            >
+                <List heading="All opened tabs">
+                    {tabStore.tabs.map((t, index) => (
+                        <ListItem
+                            index={index}
+                            icon={BiWindow}
+                            onClick={() => {
+                                tabStore.tabs = tabStore.tabs.filter(
+                                    (_, id) => id != index
                                 );
-                            }
-                        })}
-                    </div>
-                </div>
-                <div
-                    className="absolute w-screen z-40 h-screen bg-black opacity-70"
-                    onClick={() => (commandStore.is_open = false)}
-                ></div>
-            </div>
-        );
-    }
-
-    return null;
+                            }}
+                        >
+                            {t.container.name}
+                        </ListItem>
+                    ))}
+                </List>
+            </Page>
+        </CommandPalette>
+    );
 };
 
 export default observer(CommandK);

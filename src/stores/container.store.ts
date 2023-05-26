@@ -18,6 +18,10 @@ export default class ContainerStore {
         makeAutoObservable(this);
     }
 
+    format_name(name: string) {
+        return name.replaceAll("/", "");
+    }
+
     async get_all_containers() {
         const tmp = JSON.parse(
             await invoke("get_containers")
@@ -27,7 +31,7 @@ export default class ContainerStore {
             const c: Container = {
                 created_at: new Date(tmpContainer["Created"]),
                 image: tmpContainer.Image,
-                name: tmpContainer.Names[0],
+                name: this.format_name(tmpContainer.Names[0]),
                 id: tmpContainer.Id,
                 logs_subscribed: false,
             };

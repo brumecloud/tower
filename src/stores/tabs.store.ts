@@ -16,4 +16,8 @@ export default class TabStore {
     closePane = (tab: Tab) => {
         this.tabs = this.tabs.filter((t) => t != tab);
     };
+
+    addPane = (tab: Tab) => {
+        this.tabs.push(tab);
+    };
 }

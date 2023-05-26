@@ -43,6 +43,7 @@
             "width": 800,
             "height": 900,
             "maximized": true
-        }]
+        }],
+        "macOSPrivateApi": true
     }
 }
