@@ -21,7 +21,7 @@ function Search(
                 ? prefix.map((p) => {
                       return (
                           <Fragment key={p}>
-                              <span className="dark:text-white">{p}</span>
+                              <span className="text-white">{p}</span>
                               <span className="text-gray-500">/</span>
                           </Fragment>
                       );
@@ -32,7 +32,7 @@ function Search(
                 <input
                     ref={ref}
                     spellCheck={false}
-                    className="py-4 px-0 border-none w-full focus:outline-none focus:border-none focus:ring-0 bg-transparent placeholder-neutral-500 dark:text-white"
+                    className="py-4 px-0 border-none w-full focus:outline-none focus:border-none focus:ring-0 bg-transparent placeholder-neutral-500 text-white"
                     onChange={(e) => {
                         onChange(e.currentTarget.value);
                     }}

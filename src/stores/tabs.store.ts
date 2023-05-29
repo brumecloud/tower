@@ -18,6 +18,7 @@ export default class TabStore {
     };
 
     addPane = (tab: Tab) => {
+        this.rootStore.logStore.subscribe_to_container(tab.container.id);
         this.tabs.push(tab);
     };
 }

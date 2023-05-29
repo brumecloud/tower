@@ -90,7 +90,7 @@ async fn get_logs(
 
     let docker = Docker::new();
     let now = Utc::now();
-    let last_day = now - Duration::days(1);
+    let last_day = now - Duration::hours(1);
 
     let mut logs_stream = docker.containers().get(&container_id).logs(
         &LogsOptions::builder()

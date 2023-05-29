@@ -1,6 +1,10 @@
 import { observer } from "mobx-react";
 import useStores from "../../hooks/useStore";
+import { useEffect, useRef, useState } from "react";
+import LogViewer from "../../components/logs/viewer";
 import Docker from "../../components/icons/docker";
+import { FaTrash } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
     const { containerStore, logStore, tabStore } = useStores();
@@ -8,50 +12,62 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
         (c) => c.id === container_id
     ) as Container;
 
-    let logs = logStore.logs.get(container_id);
-
-    const classifier = (log: string): string => {
-        if (log.toLocaleLowerCase().includes("info")) {
-            return "text-green-500";
-        }
-        if (log.toLocaleLowerCase().includes("debug")) {
-            return "text-blue-500";
-        }
-        if (log.toLocaleLowerCase().includes("warn")) {
-            return "text-orange-500";
-        }
-        if (log.toLocaleLowerCase().includes("error")) {
-            return "text-red-500";
-        }
-        return "text-white";
-    };
-
     const closePane = () => {
         tabStore.closePane(tab);
     };
 
+    const widthCalculator = () => {
+        if (tabStore.tabs.length === 1) {
+            return `calc(100% - 16px)`;
+        } else {
+            return `calc(100% / ${tabStore.tabs.length} - 12px)`;
+        }
+    };
+
+    const leftCalculator = () => {
+        return `(calc(100% / ${tabStore.tabs.length}) * ${
+            tabStore.tabs.length - 1
+        } - 1px`;
+    };
+
     return (
-        <div className="w-full h-full bg-[#1D1D1D] overflow-hidden pb-4 border border-[#292929] rounded">
-            <div className="border-b w-full p-2 text-white flex border-[#292929] items-center gap-3 flex-row">
+        <div className="w-full h-full bg-[#1D1D1D] overflow-hidden border border-[#292929] rounded">
+            <div
+                style={{
+                    position: "absolute",
+                    border: "1px solid #292929",
+                    width: widthCalculator(),
+                    left: leftCalculator(),
+                    top: "8px",
+                    height: "48px",
+                    display: "flex",
+                    flex: 1,
+                    padding: "8px",
+                    paddingLeft: "16px",
+                    flexDirection: "row",
+                    gap: "8px",
+                    background: "#1D1D1D",
+                    color: "white",
+                    alignItems: "center",
+                }}
+            >
                 <div className="w-[24px] h-[24px] fill-white">
                     <Docker />
                 </div>
                 {container.name} - {container.created_at.toISOString()}
                 <div className="flex-grow"></div>
+                <div className="w-[12px] h-[32px] text-[18px] text-[white] cursor-pointer flex flex-row items-center justify-center">
+                    <FaTrash />
+                </div>
                 <div
                     onClick={closePane}
                     className="w-[32px] h-[32px] text-[18px] text-[white] cursor-pointer flex flex-row items-center justify-center"
                 >
-                    ×
+                    <IoMdClose />
                 </div>
             </div>
-            <div className="w-full h-full flex text-bl text-white flex-col">
-                <div className="overflow-scroll px-2">
-                    {logs?.map((c) => (
-                        <div className={classifier(c.message)}>{c.message}</div>
-                    ))}
-                    <div className="h-[30px] w-full"></div>
-                </div>
+            <div className="h-full w-full overflow-hidden">
+                <LogViewer container_id={container_id} />
             </div>
         </div>
     );

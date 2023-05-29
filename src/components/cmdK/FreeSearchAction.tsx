@@ -21,7 +21,7 @@ export default function FreeSearchAction({
             showType={false}
             {...props}
         >
-            <span className="max-w-md truncate dark:text-white">
+            <span className="max-w-md truncate text-white">
                 {label} <span className="font-semibold">"{search}"</span>
             </span>
         </ListItem>

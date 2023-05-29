@@ -178,7 +178,7 @@ function ListItemContent({
                     <ListItemIcon className="w-5 h-5 text-neutral-500" />
                 )}
                 {typeof children === "string" ? (
-                    <span className="truncate max-w-md dark:text-white">
+                    <span className="truncate max-w-md text-white">
                         {children}
                     </span>
                 ) : (

@@ -19,6 +19,7 @@ import { BiWindowClose, BiWindow } from "react-icons/bi";
 
 import useStores from "../../hooks/useStore";
 import { observer } from "mobx-react";
+import ContainerList from "./commands/container.cmd";
 
 const CommandK = () => {
     const { containerStore, tabStore } = useStores();
@@ -48,12 +49,6 @@ const CommandK = () => {
                         setPage("container_list");
                         setSearch("");
                     },
-                },
-                {
-                    children: "Terminal",
-                    icon: FaTerminal,
-                    id: "list_terminal",
-                    typeString: "List all terminal logs",
                 },
             ],
         },
@@ -134,12 +129,7 @@ const CommandK = () => {
                 {rootItems.length ? (
                     renderJsonStructure(rootItems)
                 ) : (
-                    <FreeSearchAction
-                        href={`https://google.com/?q=${search}`}
-                        rel="noopener noreferrer"
-                        closeOnSelect={false}
-                        target="_blank"
-                    />
+                    <ContainerList />
                 )}
             </Page>
 
@@ -150,18 +140,7 @@ const CommandK = () => {
                     setPage("root");
                 }}
             >
-                <List heading="All containers">
-                    {containerStore.all_containers.map((c) => (
-                        <ListItem
-                            index={0}
-                            icon={FaDocker}
-                            typeString={c.image}
-                            onClick={() => tabStore.addPane({ container: c })}
-                        >
-                            {c.name}
-                        </ListItem>
-                    ))}
-                </List>
+                <ContainerList />
             </Page>
 
             <Page
@@ -174,6 +153,7 @@ const CommandK = () => {
                 <List heading="All opened tabs">
                     {tabStore.tabs.map((t, index) => (
                         <ListItem
+                            key={index}
                             index={index}
                             icon={BiWindow}
                             onClick={() => {

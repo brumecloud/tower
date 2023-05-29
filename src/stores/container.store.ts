@@ -16,6 +16,8 @@ export default class ContainerStore {
         this.get_all_containers();
 
         makeAutoObservable(this);
+
+        setInterval(() => this.get_all_containers(), 1500);
     }
 
     format_name(name: string) {
@@ -26,6 +28,8 @@ export default class ContainerStore {
         const tmp = JSON.parse(
             await invoke("get_containers")
         ) as ExportedContainer[];
+
+        this.containers = [];
 
         tmp.map((tmpContainer) => {
             const c: Container = {
