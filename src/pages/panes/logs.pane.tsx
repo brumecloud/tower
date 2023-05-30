@@ -20,14 +20,18 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
         if (tabStore.tabs.length === 1) {
             return `calc(100% - 16px)`;
         } else {
-            return `calc(100% / ${tabStore.tabs.length} - 12px)`;
+            return `calc(100% / ${tabStore.tabs.length} - 13px)`;
         }
     };
 
     const leftCalculator = () => {
-        return `(calc(100% / ${tabStore.tabs.length}) * ${
-            tabStore.tabs.length - 1
-        } - 1px`;
+        let data = `calc(100% * ${tabStore.tabs.length - 1} / ${
+            tabStore.tabs.length
+        } + 8px)`;
+
+        console.log(data);
+
+        return data;
     };
 
     return (
@@ -36,8 +40,8 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
                 style={{
                     position: "absolute",
                     border: "1px solid #292929",
+                    borderLeft: 0,
                     width: widthCalculator(),
-                    left: leftCalculator(),
                     top: "8px",
                     height: "48px",
                     display: "flex",
