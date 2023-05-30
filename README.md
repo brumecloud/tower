@@ -1,7 +1,13 @@
-# Tauri + React + Typescript
+# Tower
+Tower is powerfull and lightweight Docker log viewer written in Rust using [tauri](https://tauri.app/). Browse your log using a native application which is fast, user friendly and responsive!
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+![commandk](assets/image3.png)
 
-## Recommended IDE Setup
+## Features
+ - Small memory & CPU footprint using Rust
+ - Command K support
+ - Split view 
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Screenshots
+![commandk](assets/image1.png)
+![logs](assets/image2.png)
