@@ -89,13 +89,11 @@ async fn get_logs(
     std::mem::drop(container_hashmap);
 
     let docker = Docker::new();
-    let now = Utc::now();
-    let last_day = now - Duration::hours(1);
 
     let mut logs_stream = docker.containers().get(&container_id).logs(
         &LogsOptions::builder()
             .stdout(true)
-            .since(&last_day)
+            .tail("500")
             .timestamps(true)
             .stderr(true)
             .follow(true)

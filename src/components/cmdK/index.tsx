@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CommandPalette from "./CommandPalette";
 import FreeSearchAction from "./FreeSearchAction";
 import List from "./List";
@@ -31,6 +31,17 @@ const CommandK = () => {
     );
 
     useHandleOpenCommandPalette(setIsOpen);
+
+    useEffect(() => {
+        if (isOpen == false) {
+            reset();
+        }
+    }, [isOpen]);
+
+    const reset = () => {
+        setPage("root");
+        setSearch("");
+    };
 
     const items: JsonStructure = [
         {
@@ -129,7 +140,7 @@ const CommandK = () => {
                 {rootItems.length ? (
                     renderJsonStructure(rootItems)
                 ) : (
-                    <ContainerList />
+                    <ContainerList search={search} />
                 )}
             </Page>
 
@@ -140,7 +151,7 @@ const CommandK = () => {
                     setPage("root");
                 }}
             >
-                <ContainerList />
+                <ContainerList search={search} />
             </Page>
 
             <Page
@@ -160,6 +171,7 @@ const CommandK = () => {
                                 tabStore.tabs = tabStore.tabs.filter(
                                     (_, id) => id != index
                                 );
+                                reset();
                             }}
                         >
                             {t.container.name}

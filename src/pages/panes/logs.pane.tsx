@@ -1,60 +1,62 @@
 import { observer } from "mobx-react";
 import useStores from "../../hooks/useStore";
 import { useEffect, useRef, useState } from "react";
-import LogViewer from "../../components/logs/viewer";
 import Docker from "../../components/icons/docker";
 import { FaTrash } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 
 function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
-    const { containerStore, logStore, tabStore } = useStores();
+    const { containerStore, tabStore, logStore } = useStores();
+    const scrollRef = useRef<HTMLInputElement>(null);
+    const [scrollToBottom, setScrollToBottom] = useState(true);
     const container = containerStore.all_containers.find(
         (c) => c.id === container_id
     ) as Container;
+    let logs = logStore.logs.get(container_id);
+    let sliced_log = logs?.slice(logs.length - 100, logs.length);
 
     const closePane = () => {
         tabStore.closePane(tab);
     };
 
-    const widthCalculator = () => {
-        if (tabStore.tabs.length === 1) {
-            return `calc(100% - 16px)`;
+    const classifier = (log: string): string => {
+        if (log.toLocaleLowerCase().includes("info")) {
+            return "text-green-500";
+        }
+        if (log.toLocaleLowerCase().includes("debug")) {
+            return "text-blue-500";
+        }
+        if (log.toLocaleLowerCase().includes("warn")) {
+            return "text-orange-500";
+        }
+        if (log.toLocaleLowerCase().includes("error")) {
+            return "text-red-500";
+        }
+        return "text-white";
+    };
+
+    useEffect(() => {
+        if (scrollToBottom) {
+            //@ts-ignore
+            scrollRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        }
+    }, [logs?.length]);
+
+    const onScrollPause = (e: any) => {
+        const element: any = e.target;
+        if (element.scrollTop === element.scrollHeight - element.clientHeight) {
+            setScrollToBottom(true);
         } else {
-            return `calc(100% / ${tabStore.tabs.length} - 13px)`;
+            setScrollToBottom(false);
         }
     };
 
-    const leftCalculator = () => {
-        let data = `calc(100% * ${tabStore.tabs.length - 1} / ${
-            tabStore.tabs.length
-        } + 8px)`;
-
-        console.log(data);
-
-        return data;
-    };
-
     return (
-        <div className="w-full h-full bg-[#1D1D1D] overflow-hidden border border-[#292929] rounded">
-            <div
-                style={{
-                    position: "absolute",
-                    border: "1px solid #292929",
-                    borderLeft: 0,
-                    width: widthCalculator(),
-                    top: "8px",
-                    height: "48px",
-                    display: "flex",
-                    flex: 1,
-                    padding: "8px",
-                    paddingLeft: "16px",
-                    flexDirection: "row",
-                    gap: "8px",
-                    background: "#1D1D1D",
-                    color: "white",
-                    alignItems: "center",
-                }}
-            >
+        <div className="w-full h-full bg-[#1D1D1D] border border-[#292929] overflow-hidden rounded">
+            <div className="w-full h-[48px] flex flex-row items-center text-white p-2 gap-2 border-b border-[#292929] px-3">
                 <div className="w-[24px] h-[24px] fill-white">
                     <Docker />
                 </div>
@@ -70,8 +72,21 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
                     <IoMdClose />
                 </div>
             </div>
-            <div className="h-full w-full overflow-hidden">
-                <LogViewer container_id={container_id} />
+            <div className="w-full flex text-bl text-white flex-col ">
+                <div
+                    className={`overflow-y-auto px-2`}
+                    style={{
+                        maxHeight: window.innerHeight - 48 - 8 * 2,
+                    }}
+                    onScroll={onScrollPause}
+                >
+                    {sliced_log?.map((c, i) => (
+                        <div key={i} className={classifier(c.message)}>
+                            {c.message}
+                        </div>
+                    ))}
+                    <div ref={scrollRef} style={{ height: 1 }} />
+                </div>
             </div>
         </div>
     );
