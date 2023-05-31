@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use chrono::{Duration, Utc};
 use futures_util::StreamExt;
 use shiplift::{tty::TtyChunk, Docker, LogsOptions};
 use shiplift::{ContainerFilter, ContainerListOptions};
@@ -23,7 +22,7 @@ struct AsyncProps {
 
 async fn print_chunk(chunk: TtyChunk, logs_sender: &mpsc::Sender<String>, container_id: String) {
     match chunk {
-        TtyChunk::StdOut(bytes) => {
+        TtyChunk::StdOut(bytes) | TtyChunk::StdErr(bytes) => {
             let message_string = std::str::from_utf8(&bytes).unwrap();
 
             let payload = Payload {
@@ -42,7 +41,6 @@ async fn print_chunk(chunk: TtyChunk, logs_sender: &mpsc::Sender<String>, contai
                 eprintln!("Error while sending the message {}", res.err().unwrap());
             }
         }
-        TtyChunk::StdErr(bytes) => eprintln!("Error: {}", std::str::from_utf8(&bytes).unwrap()),
         TtyChunk::StdIn(_) => unreachable!(),
     }
 }
@@ -94,7 +92,6 @@ async fn get_logs(
         &LogsOptions::builder()
             .stdout(true)
             .tail("500")
-            .timestamps(true)
             .stderr(true)
             .follow(true)
             .build(),

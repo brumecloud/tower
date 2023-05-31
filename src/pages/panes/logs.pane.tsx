@@ -4,8 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import Docker from "../../components/icons/docker";
 import { FaTrash } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
+import AnsiConvertor from "ansi-to-html";
+import { groupBy } from "lodash";
 
 function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
+    const ansiConvertor = new AnsiConvertor({
+        escapeXML: false,
+        fg: "var(--text-color)",
+    });
+
     const { containerStore, tabStore, logStore } = useStores();
     const scrollRef = useRef<HTMLInputElement>(null);
     const [scrollToBottom, setScrollToBottom] = useState(true);
@@ -13,26 +20,27 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
         (c) => c.id === container_id
     ) as Container;
     let logs = logStore.logs.get(container_id);
-    let sliced_log = logs?.slice(logs.length - 100, logs.length);
+    let sliced_log = logs;
 
     const closePane = () => {
         tabStore.closePane(tab);
     };
 
     const classifier = (log: string): string => {
+        const base = "flex flex-row ";
         if (log.toLocaleLowerCase().includes("info")) {
-            return "text-green-500";
+            return base + "text-green-500";
         }
         if (log.toLocaleLowerCase().includes("debug")) {
-            return "text-blue-500";
+            return base + "text-blue-500";
         }
         if (log.toLocaleLowerCase().includes("warn")) {
-            return "text-orange-500";
+            return base + "text-orange-500";
         }
         if (log.toLocaleLowerCase().includes("error")) {
-            return "text-red-500";
+            return base + "text-red-500";
         }
-        return "text-white";
+        return base + "text-white";
     };
 
     useEffect(() => {
@@ -81,9 +89,27 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
                     onScroll={onScrollPause}
                 >
                     {sliced_log?.map((c, i) => (
-                        <div key={i} className={classifier(c.message)}>
-                            {c.message}
-                        </div>
+                        <div
+                            className="font-mono text-[13px] font-light"
+                            dangerouslySetInnerHTML={{
+                                __html: ansiConvertor.toHtml(c.message),
+                            }}
+                        />
+                        // <div key={i} className={classifier(c[0].message)}>
+                        //     <div>{c[0].timestamp.toISOString()}</div>
+                        //     <div className="flex flex-col">
+                        //         {c.map(({ message }) => (
+                        // <div
+                        //     dangerouslySetInnerHTML={{
+                        //         __html: ansiConvertor.toHtml(
+                        //             message
+                        //         ),
+                        //     }}
+                        // />
+                        //         ))}
+                        //     </div>
+                        //     <div />
+                        // </div>
                     ))}
                     <div ref={scrollRef} style={{ height: 1 }} />
                 </div>

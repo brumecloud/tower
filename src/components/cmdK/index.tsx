@@ -10,8 +10,9 @@ import {
     useHandleOpenCommandPalette,
 } from "./lib/utils";
 import { JsonStructure } from "./types";
+import { exit } from "@tauri-apps/api/process";
 
-import { FaDocker, FaTerminal, FaGithub } from "react-icons/fa";
+import { FaDocker, FaGithub } from "react-icons/fa";
 import { RiPagesFill } from "react-icons/ri";
 import { BsWindowSplit } from "react-icons/bs";
 import { ImExit } from "react-icons/im";
@@ -119,6 +120,9 @@ const CommandK = () => {
                     id: "exit",
                     href: "#",
                     typeString: "Why would you exit Tower??",
+                    onClick: () => {
+                        exit(1);
+                    },
                 },
             ],
         },
