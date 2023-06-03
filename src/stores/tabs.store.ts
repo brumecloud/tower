@@ -1,5 +1,6 @@
 import { makeAutoObservable, observable } from "mobx";
 import RootStore from "./root.store";
+import { invoke } from "@tauri-apps/api";
 
 export default class TabStore {
     rootStore: RootStore;
@@ -13,8 +14,14 @@ export default class TabStore {
         makeAutoObservable(this);
     }
 
-    closePane = (tab: Tab) => {
+    closePane = async (tab: Tab) => {
         this.tabs = this.tabs.filter((t) => t != tab);
+        if (tab.container) {
+            await invoke("stop_get_logs", {
+                containerId: tab.container.id,
+            });
+            console.info("stopped container", { container: tab.container });
+        }
     };
 
     addPane = (tab: Tab) => {

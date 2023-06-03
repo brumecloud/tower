@@ -14,14 +14,19 @@ export default class LogsStore {
 
         makeAutoObservable(this);
 
-        listen("logs", (data) => {
+        listen("CONTAINERS", (data) => {
             let container_id: string;
             let message: string;
 
-            const tmp = JSON.parse(data.payload as string);
+            const tmp = data.payload as {
+                destination: string;
+                payload: string;
+            };
 
-            container_id = tmp["container_id"];
-            message = tmp["message"];
+            console.info("received logs", tmp);
+
+            container_id = tmp.destination;
+            message = tmp.payload;
 
             if (!this.logs.has(container_id)) {
                 this.logs.set(container_id, []);

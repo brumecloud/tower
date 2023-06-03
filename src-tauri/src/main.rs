@@ -1,137 +1,45 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use futures_util::StreamExt;
-use shiplift::{tty::TtyChunk, Docker, LogsOptions};
-use shiplift::{ContainerFilter, ContainerListOptions};
+mod services;
+mod tower;
+
 use std::collections::HashMap;
-use tauri::Manager;
-use tokio::sync::mpsc;
-use tokio::sync::Mutex;
 
-#[derive(Clone, serde::Serialize)]
-struct Payload {
-    message: String,
-    container_id: String,
-}
-
-struct AsyncProps {
-    logs_sender: Mutex<mpsc::Sender<String>>,
-    container_logging: Mutex<HashMap<String, String>>,
-}
-
-async fn print_chunk(chunk: TtyChunk, logs_sender: &mpsc::Sender<String>, container_id: String) {
-    match chunk {
-        TtyChunk::StdOut(bytes) | TtyChunk::StdErr(bytes) => {
-            let message_string = std::str::from_utf8(&bytes).unwrap();
-
-            let payload = Payload {
-                message: message_string.to_string(),
-                container_id: container_id,
-            };
-
-            let res = logs_sender
-                .send(format!(
-                    "{}",
-                    serde_json::to_string_pretty(&payload).unwrap()
-                ))
-                .await;
-
-            if res.is_err() {
-                eprintln!("Error while sending the message {}", res.err().unwrap());
-            }
-        }
-        TtyChunk::StdIn(_) => unreachable!(),
-    }
-}
-
-fn send_to_front<R: tauri::Runtime>(message: String, manager: &impl Manager<R>) {
-    manager.emit_all("logs", format!("{}", message)).unwrap();
-}
-
-#[tauri::command]
-async fn get_containers() -> Result<String, String> {
-    let docker: Docker = Docker::new();
-
-    let containers = docker
-        .containers()
-        .list(
-            &ContainerListOptions::builder()
-                .all()
-                .filter(vec![ContainerFilter::Status("running".into())])
-                .build(),
-        )
-        .await;
-
-    Ok(serde_json::to_string_pretty(&containers.unwrap()).unwrap())
-}
-
-#[tauri::command]
-async fn get_logs(
-    container_id: String,
-    invoke_id: u32,
-    state: tauri::State<'_, AsyncProps>,
-) -> Result<(), &'static str> {
-    let mut container_hashmap = state.container_logging.lock().await;
-    // the container is already putting log in the message stream
-    if container_hashmap.contains_key(&container_id) {
-        println!(
-            "Container id: {} (req: {}) is already in the message stream",
-            container_id, invoke_id
-        );
-        return Err("Already logging this container");
-    }
-
-    // set the container id in the hashmap and release the Mutex
-    container_hashmap.insert(container_id.clone(), "running".into());
-    std::mem::drop(container_hashmap);
-
-    let docker = Docker::new();
-
-    let mut logs_stream = docker.containers().get(&container_id).logs(
-        &LogsOptions::builder()
-            .stdout(true)
-            .tail("500")
-            .stderr(true)
-            .follow(true)
-            .build(),
-    );
-
-    while let Some(log_result) = logs_stream.next().await {
-        let logs_sender = state.logs_sender.lock().await;
-        match log_result {
-            Ok(chunk) => print_chunk(chunk, &logs_sender, container_id.clone()).await,
-            Err(e) => eprintln!("Error: {}", e),
-        }
-    }
-
-    Ok(())
-}
+use log::{info, trace};
+use services::containers;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+use tower::manager::TowerManager;
+use tower::message::{message_handler, AbstractMessage};
 
 fn main() {
-    let container_logging: HashMap<String, String> = HashMap::new();
-    let (logs_channel_sender, mut logs_channel_receiver) = mpsc::channel(1);
+    env_logger::init();
+    info!("Launching Tower backend v0.1");
+    let (abstract_message_sender, mut abstract_message_receiver) =
+        mpsc::channel::<AbstractMessage>(1);
 
     tauri::Builder::default()
-        .manage(AsyncProps {
-            logs_sender: Mutex::new(logs_channel_sender),
-            container_logging: Mutex::new(container_logging),
+        .manage(TowerManager {
+            message_queue: Arc::new(Mutex::new(abstract_message_sender)),
+            thread_handles: Arc::new(Mutex::new(HashMap::new())),
         })
-        .invoke_handler(tauri::generate_handler![get_containers, get_logs])
+        .invoke_handler(tauri::generate_handler![
+            containers::get_containers,
+            containers::get_logs,
+            containers::stop_get_logs
+        ])
         .setup(|app| {
             let handle = app.handle();
 
-            // logs thread
+            // front message sending
             tauri::async_runtime::spawn(async move {
-                loop {
-                    if let Some(output) = logs_channel_receiver.recv().await {
-                        send_to_front(output, &handle);
-                    }
-                }
+                trace!("launching the message handler thread");
+                message_handler(&mut abstract_message_receiver, &handle).await;
             });
 
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("failed to run the app");
+        .expect("Failed to run Tower app");
 }
