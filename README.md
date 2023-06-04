@@ -1,5 +1,8 @@
 # Tower
-Tower is powerfull and lightweight Docker log viewer written in Rust using [tauri](https://tauri.app/). Browse your log using a native application which is fast, user friendly and responsive!
+Tower is powerfull and lightweight multi purpose toolwritten in Rust using [tauri](https://tauri.app/). 
+With Tower :
+ - browse your local docker log
+ - browse your kubernetes cluster *(currently beeing built!)*
 
 ![commandk](assets/image3.png)
 
