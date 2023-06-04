@@ -23,8 +23,6 @@ export default class LogsStore {
                 payload: string;
             };
 
-            console.info("received logs", tmp);
-
             container_id = tmp.destination;
             message = tmp.payload;
 

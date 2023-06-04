@@ -46,7 +46,7 @@ const CommandK = () => {
 
     const items: JsonStructure = [
         {
-            heading: "Logs",
+            heading: "Docker",
             id: "logs",
             items: [
                 {
@@ -172,9 +172,10 @@ const CommandK = () => {
                             index={index}
                             icon={BiWindow}
                             onClick={() => {
-                                tabStore.tabs = tabStore.tabs.filter(
-                                    (_, id) => id != index
-                                );
+                                const tabToRemove = tabStore.tabs.find(
+                                    (_, id) => id == index
+                                ) as Tab;
+                                tabStore.closePane(tabToRemove);
                                 reset();
                             }}
                         >

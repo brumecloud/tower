@@ -5,7 +5,8 @@ import Docker from "../../components/icons/docker";
 import { FaTrash } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import AnsiConvertor from "ansi-to-html";
-import { groupBy } from "lodash";
+
+const MAX_LOGS = 300;
 
 function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
     const ansiConvertor = new AnsiConvertor({
@@ -16,44 +17,45 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
     const { containerStore, tabStore, logStore } = useStores();
     const scrollRef = useRef<HTMLInputElement>(null);
     const [scrollToBottom, setScrollToBottom] = useState(true);
+    const [renderable_logs, setRenderableLogs] = useState<ContainerLogs[]>([]);
+    const [lastLogsIndex, setLastLogsIndex] = useState(0);
+
     const container = containerStore.all_containers.find(
         (c) => c.id === container_id
     ) as Container;
-    let logs = logStore.logs.get(container_id);
-    let sliced_log = logs;
+    let logs = logStore.logs.get(container_id) as [];
+
+    const [autoScroll, setAutoScroll] = useState(false);
 
     const closePane = () => {
         tabStore.closePane(tab);
     };
 
-    const classifier = (log: string): string => {
-        const base = "flex flex-row ";
-        if (log.toLocaleLowerCase().includes("info")) {
-            return base + "text-green-500";
-        }
-        if (log.toLocaleLowerCase().includes("debug")) {
-            return base + "text-blue-500";
-        }
-        if (log.toLocaleLowerCase().includes("warn")) {
-            return base + "text-orange-500";
-        }
-        if (log.toLocaleLowerCase().includes("error")) {
-            return base + "text-red-500";
-        }
-        return base + "text-white";
-    };
-
     useEffect(() => {
         if (scrollToBottom) {
+            setRenderableLogs(
+                logs?.slice(logs.length - MAX_LOGS, logs.length) as []
+            );
             //@ts-ignore
             scrollRef.current.scrollIntoView({
-                behavior: "smooth",
                 block: "start",
             });
+            setAutoScroll(true);
+        } else {
+            setRenderableLogs((l) => {
+                let ll = [...l];
+                ll.concat(logs?.slice(lastLogsIndex, logs.length));
+                return ll;
+            });
         }
+        setLastLogsIndex(logs?.length as number);
     }, [logs?.length]);
 
     const onScrollPause = (e: any) => {
+        if (autoScroll) {
+            setAutoScroll(false);
+            return;
+        }
         const element: any = e.target;
         if (element.scrollTop === element.scrollHeight - element.clientHeight) {
             setScrollToBottom(true);
@@ -88,28 +90,13 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
                     }}
                     onScroll={onScrollPause}
                 >
-                    {sliced_log?.map((c, i) => (
+                    {renderable_logs.map((c, i) => (
                         <div
                             className="font-mono text-[13px] font-light"
                             dangerouslySetInnerHTML={{
                                 __html: ansiConvertor.toHtml(c.message),
                             }}
                         />
-                        // <div key={i} className={classifier(c[0].message)}>
-                        //     <div>{c[0].timestamp.toISOString()}</div>
-                        //     <div className="flex flex-col">
-                        //         {c.map(({ message }) => (
-                        // <div
-                        //     dangerouslySetInnerHTML={{
-                        //         __html: ansiConvertor.toHtml(
-                        //             message
-                        //         ),
-                        //     }}
-                        // />
-                        //         ))}
-                        //     </div>
-                        //     <div />
-                        // </div>
                     ))}
                     <div ref={scrollRef} style={{ height: 1 }} />
                 </div>
