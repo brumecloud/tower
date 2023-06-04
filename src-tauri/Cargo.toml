@@ -24,6 +24,8 @@ rand = "*"
 chrono = "0.4"
 env_logger = "*"
 log = "*"
+kube = { version = "0.82.2", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.18.0", features = ["v1_26"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

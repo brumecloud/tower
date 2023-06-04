@@ -5,10 +5,17 @@ import Docker from "../../components/icons/docker";
 import { FaTrash } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import AnsiConvertor from "ansi-to-html";
+import { Tab } from "../../types/tabs";
 
 const MAX_LOGS = 300;
 
-function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
+function DockerLogsPane({
+    container_id,
+    tab,
+}: {
+    container_id: string;
+    tab: Tab;
+}) {
     const ansiConvertor = new AnsiConvertor({
         escapeXML: false,
         fg: "var(--text-color)",
@@ -105,4 +112,4 @@ function LogPane({ container_id, tab }: { container_id: string; tab: Tab }) {
     );
 }
 
-export default observer(LogPane);
+export default observer(DockerLogsPane);

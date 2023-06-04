@@ -150,6 +150,8 @@ async fn get_logs_thread_function(
             break;
         }
 
+        drop(thread_handles);
+
         let logs_sender = message_arc.lock().await;
 
         match log_result {

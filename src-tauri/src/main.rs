@@ -7,7 +7,7 @@ mod tower;
 use std::collections::HashMap;
 
 use log::{info, trace};
-use services::containers;
+use services::{docker, kubernetes};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use tower::manager::TowerManager;
@@ -25,9 +25,14 @@ fn main() {
             thread_handles: Arc::new(Mutex::new(HashMap::new())),
         })
         .invoke_handler(tauri::generate_handler![
-            containers::get_containers,
-            containers::get_logs,
-            containers::stop_get_logs
+            docker::get_containers,
+            docker::get_logs,
+            docker::stop_get_logs,
+            kubernetes::get_pods,
+            kubernetes::get_services,
+            kubernetes::get_deployments,
+            kubernetes::get_pods_logs,
+            kubernetes::stop_pods_logs
         ])
         .setup(|app| {
             let handle = app.handle();

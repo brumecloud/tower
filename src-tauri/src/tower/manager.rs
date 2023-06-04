@@ -7,6 +7,7 @@ use super::message::AbstractMessage;
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum ThreadTopics {
     CONTAINERS = 0,
+    PODS = 1,
 }
 
 #[derive(Eq, Hash, PartialEq, Clone)]

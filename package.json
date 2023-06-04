@@ -16,6 +16,7 @@
     "ansi-to-html": "^0.7.2",
     "autoprefixer": "^10.4.14",
     "cmdk": "^0.2.0",
+    "kubernetes-types": "^1.26.0",
     "lodash": "^4.17.21",
     "mobx": "^6.9.0",
     "mobx-react": "^7.6.0",
