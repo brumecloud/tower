@@ -1,6 +1,7 @@
 # Tower
 Tower is powerfull and lightweight multi purpose toolwritten in Rust using [tauri](https://tauri.app/). 
-With Tower :
+
+With Tower you can :
  - browse your local docker log
  - browse your kubernetes cluster *(currently beeing built!)*
 
