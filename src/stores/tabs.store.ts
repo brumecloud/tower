@@ -1,6 +1,7 @@
 import { makeAutoObservable, observable } from "mobx";
 import RootStore from "./root.store";
 import { invoke } from "@tauri-apps/api";
+import { Tab } from "../types/tabs";
 
 export default class TabStore {
     rootStore: RootStore;
@@ -16,7 +17,7 @@ export default class TabStore {
 
     closePane = async (tab: Tab) => {
         this.tabs = this.tabs.filter((t) => t != tab);
-        if (tab.container) {
+        if (tab.type == "CONTAINER" && tab.container) {
             await invoke("stop_get_logs", {
                 containerId: tab.container.id,
             });
@@ -25,7 +26,14 @@ export default class TabStore {
     };
 
     addPane = (tab: Tab) => {
-        this.rootStore.logStore.subscribe_to_container(tab.container.id);
+        if (tab.type == "CONTAINER") {
+            this.rootStore.logStore.subscribe_to_container(tab.container.id);
+        }
+
+        if (tab.type == "PODS") {
+            this.rootStore.kubeStore.subscribe_to_pods_logs(tab.pods);
+        }
+
         this.tabs.push(tab);
     };
 }

@@ -1,5 +1,6 @@
 import { observer } from "mobx-react";
-import LogsPane from "./panes/logs.pane";
+import LogsPane from "./panes/docker_logs.pane";
+import PodsPane from "./panes/pod_logs.pane";
 import useStores from "../hooks/useStore";
 import CommandK from "../components/cmdK";
 
@@ -13,7 +14,15 @@ function HomePage() {
                 {tabStore.tabs.length > 0 &&
                     tabStore.tabs.map((t, i) => (
                         <div key={i} className={`w-full h-full`}>
-                            <LogsPane container_id={t.container.id} tab={t} />
+                            {t.type == "CONTAINER" && (
+                                <LogsPane
+                                    container_id={t.container.id}
+                                    tab={t}
+                                />
+                            )}
+                            {t.type == "PODS" && (
+                                <PodsPane pod={t.pods} tab={t} />
+                            )}
                         </div>
                     ))}
             </div>

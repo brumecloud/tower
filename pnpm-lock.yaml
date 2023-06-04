@@ -19,6 +19,9 @@ dependencies:
   cmdk:
     specifier: ^0.2.0
     version: 0.2.0(@types/react@18.2.6)(react-dom@18.2.0)(react@18.2.0)
+  kubernetes-types:
+    specifier: ^1.26.0
+    version: 1.26.0
   lodash:
     specifier: ^4.17.21
     version: 4.17.21
@@ -1711,6 +1714,10 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
     dev: true
+
+  /kubernetes-types@1.26.0:
+    resolution: {integrity: sha512-jv0XaTIGW/p18jaiKRD85hLTYWx0yEj+cb6PDX3GdNa3dWoRxnD4Gv7+bE6C/ehcsp2skcdy34vT25jbPofDIQ==}
+    dev: false
 
   /lilconfig@2.1.0:
     resolution: {integrity: sha512-utWOt/GHzuUxnLKxB6dk81RoOeoNeHgbrXiuGk4yyF5qlRz+iIVWu56E2fqGHFrXz0QNUhLB/8nKqvRH66JKGQ==}

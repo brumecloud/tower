@@ -14,7 +14,8 @@ const ContainerList = (props: { search: string }) => {
             typeString: c.image,
             icon: FaDocker,
             renderLink: (props) => <a {...props} />,
-            onClick: () => tabStore.addPane({ container: c }),
+            onClick: () =>
+                tabStore.addPane({ container: c, type: "CONTAINER" }),
         }));
 
     return (
@@ -27,7 +28,12 @@ const ContainerList = (props: { search: string }) => {
                         index={i}
                         icon={FaDocker}
                         typeString={c.image}
-                        onClick={() => tabStore.addPane({ container: c })}
+                        onClick={() =>
+                            tabStore.addPane({
+                                container: c,
+                                type: "CONTAINER",
+                            })
+                        }
                     >
                         {c.name}
                     </ListItem>

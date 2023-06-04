@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import CommandPalette from "./CommandPalette";
-import FreeSearchAction from "./FreeSearchAction";
 import List from "./List";
 import ListItem from "./ListItem";
 import Page from "./Page";
@@ -17,19 +16,29 @@ import { RiPagesFill } from "react-icons/ri";
 import { BsWindowSplit } from "react-icons/bs";
 import { ImExit } from "react-icons/im";
 import { BiWindowClose, BiWindow } from "react-icons/bi";
+import { SiKubernetes } from "react-icons/si";
 
 import useStores from "../../hooks/useStore";
 import { observer } from "mobx-react";
 import ContainerList from "./commands/container.cmd";
+import PodsList from "./commands/kube/pods.cmd";
+import DeploymentList from "./commands/kube/deployments.cmd";
+import ServiceList from "./commands/kube/service.cmd";
+import { Tab } from "../../types/tabs";
 
 const CommandK = () => {
     const { containerStore, tabStore } = useStores();
     const [selected, setSelected] = useState<number>(0);
     const [isOpen, setIsOpen] = useState<boolean>(true);
     const [search, setSearch] = useState<string>("");
-    const [page, setPage] = useState<"root" | "container_list" | "close_tab">(
-        "root"
-    );
+    const [page, setPage] = useState<
+        | "root"
+        | "container_list"
+        | "close_tab"
+        | "pods_list"
+        | "deployments_list"
+        | "services_list"
+    >("root");
 
     useHandleOpenCommandPalette(setIsOpen);
 
@@ -59,6 +68,51 @@ const CommandK = () => {
                     typeString: "List all containers logs",
                     onClick: () => {
                         setPage("container_list");
+                        setSearch("");
+                    },
+                },
+            ],
+        },
+        {
+            heading: "Kubernetes",
+            id: "logs",
+            items: [
+                {
+                    children: "Pods",
+                    icon: SiKubernetes,
+                    id: "list_pods",
+                    href: "#",
+                    closeOnSelect: false,
+                    renderLink: (props) => <a {...props} />,
+                    typeString: "Get all pods",
+                    onClick: async () => {
+                        setPage("pods_list");
+                        setSearch("");
+                    },
+                },
+                {
+                    children: "Services",
+                    icon: SiKubernetes,
+                    id: "list_services",
+                    href: "#",
+                    closeOnSelect: false,
+                    renderLink: (props) => <a {...props} />,
+                    typeString: "Get all services",
+                    onClick: async () => {
+                        setPage("services_list");
+                        setSearch("");
+                    },
+                },
+                {
+                    children: "Deployments",
+                    icon: SiKubernetes,
+                    id: "list_deployments",
+                    href: "#",
+                    closeOnSelect: false,
+                    renderLink: (props) => <a {...props} />,
+                    typeString: "Get all deployments",
+                    onClick: async () => {
+                        setPage("deployments_list");
                         setSearch("");
                     },
                 },
@@ -159,6 +213,36 @@ const CommandK = () => {
             </Page>
 
             <Page
+                searchPrefix={["Tower", "Pods"]}
+                id="pods_list"
+                onEscape={() => {
+                    setPage("root");
+                }}
+            >
+                <PodsList search={search} />
+            </Page>
+
+            <Page
+                searchPrefix={["Tower", "Deployments"]}
+                id="deployments_list"
+                onEscape={() => {
+                    setPage("root");
+                }}
+            >
+                <DeploymentList search={search} />
+            </Page>
+
+            <Page
+                searchPrefix={["Tower", "Services"]}
+                id="services_list"
+                onEscape={() => {
+                    setPage("root");
+                }}
+            >
+                <ServiceList search={search} />
+            </Page>
+
+            <Page
                 searchPrefix={["Tower", "Close a tab"]}
                 id="close_tab"
                 onEscape={() => {
@@ -179,7 +263,8 @@ const CommandK = () => {
                                 reset();
                             }}
                         >
-                            {t.container.name}
+                            {t.type == "CONTAINER" && t.container.name}
+                            {t.type == "PODS" && t.pods.metadata?.name}
                         </ListItem>
                     ))}
                 </List>
