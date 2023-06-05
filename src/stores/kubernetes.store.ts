@@ -103,7 +103,6 @@ export default class KubeStore {
         const rawData = (await invoke("get_namespaces")) as string;
         const ns = JSON.parse(rawData) as Namespace[];
         this.namespaces = ns.map((n) => n.metadata?.name as string);
-        console.log(this.namespaces);
     }
 
     get_logs(pods_id: string): ContainerLogs[] | undefined {
@@ -126,16 +125,12 @@ export default class KubeStore {
                 throw new Error("Cannot subscribe because pod not found");
             }
 
-            console.log("subcribing to pod", pods.metadata?.name);
-
             invoke("get_pods_logs", {
                 podsId: pods.metadata?.name,
                 namespace: ns,
             });
 
             this.logs.set(pods.metadata?.uid as string, []);
-
-            console.log(`subscribe to pods ${pod.metadata?.name}`);
         } catch (e) {
             throw new Error("Subscribe failed : " + e);
         }

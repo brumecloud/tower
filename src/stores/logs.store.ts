@@ -69,8 +69,6 @@ export default class LogsStore {
 
             this.logs.set(container_id, []);
             container.logs_subscribed = true;
-
-            console.log(`subscribe to container ${container_id}`);
         } catch (e) {
             throw new Error("Subscribe failed : " + e);
         }
