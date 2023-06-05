@@ -4,13 +4,17 @@ import List from "../../List";
 import ListItem from "../../ListItem";
 import { FaDocker } from "react-icons/fa";
 
-const PodsList = (props: { search: string }) => {
-    const { kubeStore, tabStore } = useStores();
+const PodsList = () => {
+    const { kubeStore, tabStore, commandStore, settingStore } = useStores();
+
+    const ns = settingStore.kubernetes_scoped_namespace
+        ? settingStore.kubernetes_scoped_namespace
+        : settingStore.kubernetes_default_namespace;
 
     return (
-        <List heading="All pods">
+        <List heading={`All pods (in ns ${ns})`}>
             {kubeStore.all_pods
-                .filter((c) => c.metadata?.name?.includes(props.search))
+                .filter((c) => c.metadata?.name?.includes(commandStore.search))
                 .map((c, i) => (
                     <ListItem
                         key={i}

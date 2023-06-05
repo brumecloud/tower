@@ -4,13 +4,13 @@ import List from "../../List";
 import ListItem from "../../ListItem";
 import { FaDocker } from "react-icons/fa";
 
-const DeploymentsList = (props: { search: string }) => {
-    const { kubeStore } = useStores();
+const DeploymentsList = () => {
+    const { kubeStore, commandStore } = useStores();
 
     return (
         <List heading="All deployments">
             {kubeStore.all_deployments
-                .filter((c) => c.metadata?.name?.includes(props.search))
+                .filter((c) => c.metadata?.name?.includes(commandStore.search))
                 .map((c, i) => (
                     <ListItem
                         key={i}

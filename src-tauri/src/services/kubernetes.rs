@@ -1,16 +1,15 @@
 use futures_util::StreamExt;
 use k8s_openapi::api::{
     apps::v1::Deployment,
-    core::v1::{Pod, Service},
+    core::v1::{Namespace, Pod, Service},
 };
 use kube::{
     api::{Api, ListParams, LogParams},
     Client,
 };
 use log::{error, info, trace, warn};
-use tauri::async_runtime::Sender;
-
 use std::{collections::HashMap, sync::Arc};
+use tauri::async_runtime::Sender;
 use tokio::sync::Mutex;
 
 use crate::tower::{
@@ -19,11 +18,11 @@ use crate::tower::{
 };
 
 #[tauri::command]
-pub async fn get_pods() -> Result<String, &'static str> {
-    trace!("getting all pods");
+pub async fn get_pods(namespace: String) -> Result<String, &'static str> {
+    trace!("getting all pods in ns {}", namespace);
 
     let client = Client::try_default().await.unwrap();
-    let pods: Api<Pod> = Api::default_namespaced(client);
+    let pods: Api<Pod> = Api::namespaced(client, &namespace);
     let lp = ListParams::default();
     let all_pods = pods.list(&lp).await.unwrap();
 
@@ -31,8 +30,8 @@ pub async fn get_pods() -> Result<String, &'static str> {
 }
 
 #[tauri::command]
-pub async fn get_services() -> Result<String, &'static str> {
-    trace!("getting all services");
+pub async fn get_services(namespace: String) -> Result<String, &'static str> {
+    trace!("getting all services in ns {}", namespace);
 
     let client = Client::try_default().await.unwrap();
     let services: Api<Service> = Api::default_namespaced(client);
@@ -43,8 +42,20 @@ pub async fn get_services() -> Result<String, &'static str> {
 }
 
 #[tauri::command]
-pub async fn get_deployments() -> Result<String, &'static str> {
-    trace!("getting all deployments");
+pub async fn get_namespaces() -> Result<String, &'static str> {
+    trace!("getting all namespaces");
+
+    let client = Client::try_default().await.unwrap();
+    let services: Api<Namespace> = Api::all(client);
+    let lp = ListParams::default();
+    let all_namespaces = services.list(&lp).await.unwrap();
+
+    Ok(serde_json::to_string_pretty(&all_namespaces.items).unwrap())
+}
+
+#[tauri::command]
+pub async fn get_deployments(namespace: String) -> Result<String, &'static str> {
+    trace!("getting all deployments in ns {}", namespace);
 
     let client = Client::try_default().await.unwrap();
     let deployments: Api<Deployment> = Api::default_namespaced(client);
@@ -57,6 +68,7 @@ pub async fn get_deployments() -> Result<String, &'static str> {
 #[tauri::command]
 pub async fn get_pods_logs(
     pods_id: String,
+    namespace: String,
     state: tauri::State<'_, TowerManager>,
 ) -> Result<(), &'static str> {
     info!("subscribing to logs for pods {}", pods_id);
@@ -81,7 +93,7 @@ pub async fn get_pods_logs(
     // spawn a new thread, made it listen to the docker logs
     tauri::async_runtime::spawn(async move {
         trace!("launch new kubernetes pods logging thread");
-        get_logs_thread_function(pods_id.clone(), messages, threads).await
+        get_logs_thread_function(pods_id.clone(), namespace, messages, threads).await
     });
 
     Ok(())
@@ -107,10 +119,11 @@ pub async fn stop_pods_logs(
 
 async fn get_logs_thread_function(
     pods_id: String,
+    namespace: String,
     message_arc: Arc<Mutex<Sender<AbstractMessage>>>,
     threads: Arc<Mutex<HashMap<ThreadIdentifier, bool>>>,
 ) {
-    info!("get logs for container_id {}", pods_id);
+    info!("get logs for container_id {} in ns {}", pods_id, namespace);
     let container_id = pods_id.clone();
 
     let thread_id = ThreadIdentifier {
@@ -119,7 +132,7 @@ async fn get_logs_thread_function(
     };
 
     let client = Client::try_default().await.unwrap();
-    let pods: Api<Pod> = Api::default_namespaced(client);
+    let pods: Api<Pod> = Api::namespaced(client, &namespace);
 
     let mut logs = pods
         .log_stream(

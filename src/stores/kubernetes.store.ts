@@ -1,7 +1,7 @@
 import { Root } from "react-dom/client";
 import RootStore from "./root.store";
 import { invoke } from "@tauri-apps/api";
-import { Pod } from "kubernetes-types/core/v1";
+import { Namespace, Pod } from "kubernetes-types/core/v1";
 import { Deployment } from "kubernetes-types/apps/v1";
 import { Service } from "kubernetes-types/core/v1";
 import { listen } from "@tauri-apps/api/event";
@@ -13,6 +13,12 @@ export default class KubeStore {
     pods: Pod[] = [];
     deployments: Deployment[] = [];
     services: Service[] = [];
+    namespaces: String[] = [
+        "default",
+        "kube-system",
+        "kube-public",
+        "kube-node-lease",
+    ];
 
     logs: Map<string, PodsLogs[]>;
 
@@ -20,9 +26,7 @@ export default class KubeStore {
         this.rootStore = rootStore;
         this.logs = new Map<string, PodsLogs[]>();
 
-        this.get_pods();
-        this.get_deployments();
-        this.get_services();
+        this.reset_data();
 
         makeAutoObservable(this);
 
@@ -55,19 +59,50 @@ export default class KubeStore {
         });
     }
 
-    async get_pods() {
-        const rawData = (await invoke("get_pods")) as string;
+    get current_namespace() {
+        if (this.rootStore.settingStore.kubernetes_scoped_namespace) {
+            return this.rootStore.settingStore.kubernetes_scoped_namespace;
+        }
+        return this.rootStore.settingStore.kubernetes_default_namespace;
+    }
+
+    async reset_data() {
+        return Promise.all([
+            this.get_pods(),
+            this.get_deployments(),
+            this.get_services(),
+            this.get_namespace(),
+        ]);
+    }
+
+    async get_pods(namespace?: string) {
+        const ns = namespace ? namespace : this.current_namespace;
+        const rawData = (await invoke("get_pods", {
+            namespace: ns,
+        })) as string;
         this.pods = JSON.parse(rawData) as Pod[];
     }
 
-    async get_deployments() {
-        const rawData = (await invoke("get_deployments")) as string;
+    async get_deployments(namespace?: string) {
+        const ns = namespace ? namespace : this.current_namespace;
+        const rawData = (await invoke("get_deployments", {
+            namespace: ns,
+        })) as string;
         this.deployments = JSON.parse(rawData) as Deployment[];
     }
 
-    async get_services() {
-        const rawData = (await invoke("get_services")) as string;
+    async get_services(namespace?: string) {
+        const ns = namespace ? namespace : this.current_namespace;
+        const rawData = (await invoke("get_services", {
+            namespace: ns,
+        })) as string;
         this.services = JSON.parse(rawData) as Service[];
+    }
+
+    async get_namespace() {
+        const rawData = (await invoke("get_namespaces")) as string;
+        const ns = JSON.parse(rawData) as Namespace[];
+        this.namespaces = ns.map((n) => n.metadata?.name as string);
     }
 
     get_logs(pods_id: string): ContainerLogs[] | undefined {
@@ -79,9 +114,9 @@ export default class KubeStore {
         }
     }
 
-    async subscribe_to_pods_logs(pod: Pod) {
+    async subscribe_to_pods_logs(pod: Pod, namespace?: string) {
+        const ns = namespace ? namespace : this.current_namespace;
         try {
-            console.log(pod);
             const pods = this.pods.find(
                 (c) => c.metadata?.uid == pod.metadata?.uid
             );
@@ -90,15 +125,12 @@ export default class KubeStore {
                 throw new Error("Cannot subscribe because pod not found");
             }
 
-            console.log("subcribing to pod", pods.metadata?.name);
-
             invoke("get_pods_logs", {
                 podsId: pods.metadata?.name,
+                namespace: ns,
             });
 
             this.logs.set(pods.metadata?.uid as string, []);
-
-            console.log(`subscribe to pods ${pod.metadata?.name}`);
         } catch (e) {
             throw new Error("Subscribe failed : " + e);
         }

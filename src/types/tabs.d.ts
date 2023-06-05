@@ -14,4 +14,8 @@ type PodsTab = {
     type: "PODS";
 };
 
-type Tab = LogsTab | PodsTab;
+type SettingTab = {
+    type: "SETTINGS";
+};
+
+type Tab = LogsTab | PodsTab | SettingTab;
