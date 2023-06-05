@@ -5,23 +5,13 @@ import ListItem from "../ListItem";
 import { FaDocker } from "react-icons/fa";
 import { JsonStructure, JsonStructureItem, filterItems } from "react-cmdk";
 
-const ContainerList = (props: { search: string }) => {
-    const { containerStore, tabStore } = useStores();
-
-    const containerList: JsonStructureItem[] =
-        containerStore.all_containers.map((c, i) => ({
-            id: i.toString(),
-            typeString: c.image,
-            icon: FaDocker,
-            renderLink: (props) => <a {...props} />,
-            onClick: () =>
-                tabStore.addPane({ container: c, type: "CONTAINER" }),
-        }));
+const ContainerList = () => {
+    const { containerStore, tabStore, commandStore } = useStores();
 
     return (
         <List heading="All containers">
             {containerStore.all_containers
-                .filter((c) => c.name.includes(props.search))
+                .filter((c) => c.name.includes(commandStore.search))
                 .map((c, i) => (
                     <ListItem
                         key={i}

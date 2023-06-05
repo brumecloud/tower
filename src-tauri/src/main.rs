@@ -31,6 +31,7 @@ fn main() {
             kubernetes::get_pods,
             kubernetes::get_services,
             kubernetes::get_deployments,
+            kubernetes::get_namespaces,
             kubernetes::get_pods_logs,
             kubernetes::stop_pods_logs
         ])

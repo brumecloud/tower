@@ -3,9 +3,16 @@ import LogsPane from "./panes/docker_logs.pane";
 import PodsPane from "./panes/pod_logs.pane";
 import useStores from "../hooks/useStore";
 import CommandK from "../components/cmdK";
+import SettingsPane from "./panes/settings.pane";
 
 function HomePage() {
     const { tabStore } = useStores();
+
+    const size = () => {
+        return {
+            width: `${Math.round((100 / tabStore.tabs.length) * 100) / 100}%`,
+        };
+    };
 
     return (
         <main className="h-screen w-screen overflow-hidden backdrop-blur-xl">
@@ -13,7 +20,7 @@ function HomePage() {
             <div className="absolute flex flex-row p-2 h-full w-full z-1 gap-2">
                 {tabStore.tabs.length > 0 &&
                     tabStore.tabs.map((t, i) => (
-                        <div key={i} className={`w-full h-full`}>
+                        <div key={i} style={size()}>
                             {t.type == "CONTAINER" && (
                                 <LogsPane
                                     container_id={t.container.id}
@@ -23,6 +30,7 @@ function HomePage() {
                             {t.type == "PODS" && (
                                 <PodsPane pod={t.pods} tab={t} />
                             )}
+                            {t.type == "SETTINGS" && <SettingsPane tab={t} />}
                         </div>
                     ))}
             </div>

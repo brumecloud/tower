@@ -14,7 +14,7 @@ import { exit } from "@tauri-apps/api/process";
 import { FaDocker, FaGithub } from "react-icons/fa";
 import { RiPagesFill } from "react-icons/ri";
 import { BsWindowSplit } from "react-icons/bs";
-import { ImExit } from "react-icons/im";
+import { ImExit, ImWrench } from "react-icons/im";
 import { BiWindowClose, BiWindow } from "react-icons/bi";
 import { SiKubernetes } from "react-icons/si";
 
@@ -25,33 +25,15 @@ import PodsList from "./commands/kube/pods.cmd";
 import DeploymentList from "./commands/kube/deployments.cmd";
 import ServiceList from "./commands/kube/service.cmd";
 import { Tab } from "../../types/tabs";
+import NamespaceList from "./commands/kube/namespace.cmd";
 
 const CommandK = () => {
-    const { containerStore, tabStore } = useStores();
-    const [selected, setSelected] = useState<number>(0);
-    const [isOpen, setIsOpen] = useState<boolean>(true);
-    const [search, setSearch] = useState<string>("");
-    const [page, setPage] = useState<
-        | "root"
-        | "container_list"
-        | "close_tab"
-        | "pods_list"
-        | "deployments_list"
-        | "services_list"
-    >("root");
+    const { containerStore, tabStore, settingStore, commandStore } =
+        useStores();
 
-    useHandleOpenCommandPalette(setIsOpen);
-
-    useEffect(() => {
-        if (isOpen == false) {
-            reset();
-        }
-    }, [isOpen]);
-
-    const reset = () => {
-        setPage("root");
-        setSearch("");
-    };
+    useHandleOpenCommandPalette(() => {
+        commandStore.is_open = true;
+    });
 
     const items: JsonStructure = [
         {
@@ -67,8 +49,8 @@ const CommandK = () => {
                     renderLink: (props) => <a {...props} />,
                     typeString: "List all containers logs",
                     onClick: () => {
-                        setPage("container_list");
-                        setSearch("");
+                        commandStore.command_page = "container_list";
+                        commandStore.search = "";
                     },
                 },
             ],
@@ -86,8 +68,15 @@ const CommandK = () => {
                     renderLink: (props) => <a {...props} />,
                     typeString: "Get all pods",
                     onClick: async () => {
-                        setPage("pods_list");
-                        setSearch("");
+                        if (
+                            settingStore.kubernetes_customize_namespace_at_command
+                        ) {
+                            commandStore.command_page = "namespace_list";
+                            commandStore.tmp_next_command_page = "pods_list";
+                        } else {
+                            commandStore.command_page = "pods_list";
+                        }
+                        commandStore.search = "";
                     },
                 },
                 {
@@ -99,8 +88,16 @@ const CommandK = () => {
                     renderLink: (props) => <a {...props} />,
                     typeString: "Get all services",
                     onClick: async () => {
-                        setPage("services_list");
-                        setSearch("");
+                        if (
+                            settingStore.kubernetes_customize_namespace_at_command
+                        ) {
+                            commandStore.command_page = "namespace_list";
+                            commandStore.tmp_next_command_page =
+                                "services_list";
+                        } else {
+                            commandStore.command_page = "services_list";
+                        }
+                        commandStore.search = "";
                     },
                 },
                 {
@@ -112,8 +109,16 @@ const CommandK = () => {
                     renderLink: (props) => <a {...props} />,
                     typeString: "Get all deployments",
                     onClick: async () => {
-                        setPage("deployments_list");
-                        setSearch("");
+                        if (
+                            settingStore.kubernetes_customize_namespace_at_command
+                        ) {
+                            commandStore.command_page = "namespace_list";
+                            commandStore.tmp_next_command_page =
+                                "deployments_list";
+                        } else {
+                            commandStore.command_page = "deployments_list";
+                        }
+                        commandStore.search = "";
                     },
                 },
             ],
@@ -129,8 +134,8 @@ const CommandK = () => {
                     href: "#",
                     closeOnSelect: false,
                     onClick: () => {
-                        setPage("container_list");
-                        setSearch("");
+                        commandStore.command_page = "container_list";
+                        commandStore.search = "";
                     },
                 },
                 {
@@ -140,14 +145,41 @@ const CommandK = () => {
                     href: "#",
                     closeOnSelect: false,
                     onClick: () => {
-                        setPage("close_tab");
-                        setSearch("");
+                        commandStore.command_page = "close_tab";
+                        commandStore.search;
                     },
                 },
             ],
         },
         {
-            heading: "Credit & Exit",
+            heading: "Settings",
+            id: "settings",
+            items: [
+                {
+                    children: "Settings",
+                    icon: ImWrench,
+                    id: "wrench",
+                    href: "#",
+                    typeString: "Change parameters",
+                    onClick: () => {
+                        tabStore.addPane({ type: "SETTINGS" });
+                        commandStore.reset();
+                    },
+                },
+                {
+                    children: "Exit",
+                    icon: ImExit,
+                    id: "exit",
+                    href: "#",
+                    typeString: "Why would you exit Tower??",
+                    onClick: () => {
+                        exit(1);
+                    },
+                },
+            ],
+        },
+        {
+            heading: "Credit",
             id: "credits",
             items: [
                 {
@@ -168,37 +200,27 @@ const CommandK = () => {
                     rel: "noopener noreferrer",
                     typeString: "Go to tower Github",
                 },
-                {
-                    children: "Exit",
-                    icon: ImExit,
-                    id: "exit",
-                    href: "#",
-                    typeString: "Why would you exit Tower??",
-                    onClick: () => {
-                        exit(1);
-                    },
-                },
             ],
         },
     ];
 
-    const rootItems = filterItems(items, search);
+    const rootItems = filterItems(items, commandStore.search);
 
     return (
         <CommandPalette
-            onChangeSelected={setSelected}
-            onChangeSearch={setSearch}
-            onChangeOpen={setIsOpen}
-            selected={selected}
-            search={search}
-            isOpen={isOpen || tabStore.tabs.length == 0}
-            page={page}
+            onChangeSelected={(v) => (commandStore.item_selected = v)}
+            onChangeSearch={(s) => (commandStore.search = s)}
+            onChangeOpen={(o) => (commandStore.is_open = o)}
+            selected={commandStore.item_selected}
+            search={commandStore.search}
+            isOpen={commandStore.is_open || tabStore.tabs.length == 0}
+            page={commandStore.command_page}
         >
             <Page id="root" searchPrefix={["Tower"]}>
                 {rootItems.length ? (
                     renderJsonStructure(rootItems)
                 ) : (
-                    <ContainerList search={search} />
+                    <ContainerList />
                 )}
             </Page>
 
@@ -206,47 +228,57 @@ const CommandK = () => {
                 searchPrefix={["Tower", "Containers"]}
                 id="container_list"
                 onEscape={() => {
-                    setPage("root");
+                    commandStore.command_page = "root";
                 }}
             >
-                <ContainerList search={search} />
+                <ContainerList />
             </Page>
 
             <Page
                 searchPrefix={["Tower", "Pods"]}
                 id="pods_list"
                 onEscape={() => {
-                    setPage("root");
+                    commandStore.command_page = "root";
                 }}
             >
-                <PodsList search={search} />
+                <PodsList />
             </Page>
 
             <Page
                 searchPrefix={["Tower", "Deployments"]}
                 id="deployments_list"
                 onEscape={() => {
-                    setPage("root");
+                    commandStore.command_page = "root";
                 }}
             >
-                <DeploymentList search={search} />
+                <DeploymentList />
+            </Page>
+
+            <Page
+                searchPrefix={["Tower", "Namespaces"]}
+                id="namespace_list"
+                onEscape={() => {
+                    commandStore.command_page = "root";
+                }}
+            >
+                <NamespaceList />
             </Page>
 
             <Page
                 searchPrefix={["Tower", "Services"]}
                 id="services_list"
                 onEscape={() => {
-                    setPage("root");
+                    commandStore.command_page = "root";
                 }}
             >
-                <ServiceList search={search} />
+                <ServiceList />
             </Page>
 
             <Page
                 searchPrefix={["Tower", "Close a tab"]}
                 id="close_tab"
                 onEscape={() => {
-                    setPage("root");
+                    commandStore.command_page = "root";
                 }}
             >
                 <List heading="All opened tabs">
@@ -260,7 +292,7 @@ const CommandK = () => {
                                     (_, id) => id == index
                                 ) as Tab;
                                 tabStore.closePane(tabToRemove);
-                                reset();
+                                commandStore.reset();
                             }}
                         >
                             {t.type == "CONTAINER" && t.container.name}
